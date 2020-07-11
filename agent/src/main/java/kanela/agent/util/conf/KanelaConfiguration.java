@@ -20,7 +20,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigResolveOptions;
-import io.vavr.Tuple;
 import io.vavr.collection.List;
 import io.vavr.collection.List.Nil;
 import io.vavr.control.Option;
@@ -36,7 +35,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.function.Function;
+import java.util.Map;
 
 import static io.vavr.API.*;
 import static java.text.MessageFormat.format;
@@ -49,8 +48,9 @@ public class KanelaConfiguration {
     CircuitBreakerConfig circuitBreakerConfig;
     InstrumentationRegistryConfig instrumentationRegistryConfig;
     OldGarbageCollectorConfig oldGarbageCollectorConfig;
+    ClassRegistryConfig classRegistryConfig;
     Boolean showBanner;
-    HashMap extraParams;
+    Map extraParams;
     Level logLevel;
     @Getter(AccessLevel.PRIVATE)
     Config config;
@@ -76,11 +76,12 @@ public class KanelaConfiguration {
         this.config = config;
         this.debugMode = getDebugMode(config);
         this.showBanner = getShowBanner(config);
-        this.extraParams = new HashMap();
+        this.extraParams = new HashMap<>();
         this.dump = new DumpConfig(config);
         this.circuitBreakerConfig = new CircuitBreakerConfig(config);
         this.instrumentationRegistryConfig = new InstrumentationRegistryConfig(config);
         this.oldGarbageCollectorConfig =  new OldGarbageCollectorConfig(config);
+        this.classRegistryConfig = new ClassRegistryConfig(config);
         this.logLevel = getLoggerLevel(config);
     }
 
@@ -162,7 +163,7 @@ public class KanelaConfiguration {
     }
 
     @Value
-    public class DumpConfig {
+    public static class DumpConfig {
         Boolean dumpEnabled;
         String dumpDir;
         Boolean createJar;
@@ -198,7 +199,7 @@ public class KanelaConfiguration {
     }
 
     @Value
-    public class InstrumentationRegistryConfig {
+    public static class InstrumentationRegistryConfig {
         boolean enabled;
 
         InstrumentationRegistryConfig(Config config) {
@@ -219,8 +220,24 @@ public class KanelaConfiguration {
         }
     }
 
+
     @Value
-    public class BootstrapInjectionConfig {
+    public static class ClassRegistryConfig {
+        boolean enabled;
+        int size;
+        double errorRate;
+        int hashCount;
+
+        ClassRegistryConfig(Config config) {
+            this.enabled = Try.of(() -> config.getBoolean("class-registry.enabled")).getOrElse(false);
+            this.size = Try.of(() -> config.getInt("class-registry.size")).getOrElse(50000);
+            this.errorRate = Try.of(() -> config.getDouble("class-registry.error-rate")).getOrElse(0.0000001);
+            this.hashCount = Try.of(() -> config.getInt("class-registry.hash-count")).getOrElse(23);
+        }
+    }
+
+    @Value
+    public static class BootstrapInjectionConfig {
         boolean enabled;
         List<String> helperClassNames;
 
